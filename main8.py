@@ -107,6 +107,7 @@ Texto:
                     temperature=0.2
                 )
                 resultado = response.choices[0].message.content.strip()
+                st.session_state["resultado_triaje"] = resultado
                 st.success("Resumen generado:")
                 st.code(resultado, language="yaml")
                 archivo = "Resumen_triaje.pdf"
@@ -121,7 +122,7 @@ Texto:
                     "contenido": resultado
                 })
 if st.button("🔍 Sugerir diagnóstico clínico + CIE-10", key="cie10_triaje"):
-    if "resultado" in locals() or "resultado" in globals():
+    if "resultado_triaje" in st.session_state:
         with st.spinner("Generando diagnóstico sugerido..."):
             prompt_dx = f"""
 Eres un asistente clínico que revisa un resumen de síntomas de una paciente.
@@ -131,7 +132,7 @@ A partir del siguiente texto, entrega:
 - Los códigos CIE-10 más probables (máximo 3)
 
 Resumen clínico:
-{resultado}
+{st.session_state['resultado_triaje']}
 """
             response_dx = client.chat.completions.create(
                 model="gpt-4",
