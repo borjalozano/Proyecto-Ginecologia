@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "001-triage-preconsulta"
+name = "002-occupation-forecast"
 version = "0.1.0"
 description = ""
 authors = ["Borja Lozano <borja.lozano@babelgroup.com>"]
