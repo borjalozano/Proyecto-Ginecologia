@@ -276,3 +276,32 @@ PREGUNTA:
     for q, r in st.session_state.chat_pdf[::-1]:
         with st.expander(f"❓ {q}"):
             st.markdown(r)
+
+...  # Agregar al final del bloque tabs
+
+# --- PESTAÑA 5: Panel clínico ---
+tab5 = st.tabs(["📝 Triaje", "🧾 Recetas", "📋 Exámenes", "💬 Chat PDF", "📊 Panel clínico"])[4]
+
+with tab5:
+    st.subheader("📊 Panel clínico de pacientes")
+
+    # Agrupar historial por paciente
+    pacientes = {}
+    for ficha in st.session_state.historial:
+        key = ficha['nombre']
+        if key not in pacientes:
+            pacientes[key] = []
+        pacientes[key].append(ficha)
+
+    # Buscar paciente
+    nombres_disponibles = sorted(pacientes.keys())
+    buscado = st.selectbox("Selecciona un paciente:", [""] + nombres_disponibles)
+
+    if buscado:
+        fichas = pacientes[buscado]
+        st.markdown(f"### 📁 Historial de {buscado}")
+        for ficha in fichas[::-1]:
+            with st.expander(f"🗓️ {ficha['fecha']} - {ficha['tipo']}"):
+                st.code(ficha["contenido"], language="yaml")
+    else:
+        st.markdown("_Selecciona un paciente en el menú desplegable para ver su historial._")
