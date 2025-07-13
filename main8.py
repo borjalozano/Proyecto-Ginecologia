@@ -121,8 +121,9 @@ Texto:
                     "contenido": resultado
                 })
 if st.button("🔍 Sugerir diagnóstico clínico + CIE-10", key="cie10_triaje"):
-    with st.spinner("Generando diagnóstico sugerido..."):
-        prompt_dx = f"""
+    if "resultado" in locals() or "resultado" in globals():
+        with st.spinner("Generando diagnóstico sugerido..."):
+            prompt_dx = f"""
 Eres un asistente clínico que revisa un resumen de síntomas de una paciente.
 
 A partir del siguiente texto, entrega:
@@ -132,21 +133,23 @@ A partir del siguiente texto, entrega:
 Resumen clínico:
 {resultado}
 """
-        response_dx = client.chat.completions.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": prompt_dx}],
-            temperature=0.2
-        )
-        dx = response_dx.choices[0].message.content.strip()
-        st.success("Diagnóstico sugerido:")
-        st.markdown(dx)
-        st.session_state.historial.append({
-            "nombre": nombre_paciente,
-            "rut": rut_paciente,
-            "fecha": date.today().isoformat(),
-            "tipo": "Diagnóstico CIE-10",
-            "contenido": dx
-        })
+            response_dx = client.chat.completions.create(
+                model="gpt-4",
+                messages=[{"role": "user", "content": prompt_dx}],
+                temperature=0.2
+            )
+            dx = response_dx.choices[0].message.content.strip()
+            st.success("Diagnóstico sugerido:")
+            st.markdown(dx)
+            st.session_state.historial.append({
+                "nombre": nombre_paciente,
+                "rut": rut_paciente,
+                "fecha": date.today().isoformat(),
+                "tipo": "Diagnóstico CIE-10",
+                "contenido": dx
+            })
+    else:
+        st.warning("⚠️ Primero debes generar el resumen clínico antes de sugerir diagnóstico.")
 # --- PESTAÑA 2 ---
 with tab2:
     st.subheader("🧾 Generador de recetas y órdenes")
