@@ -1,21 +1,15 @@
 import streamlit as st
-import openai
-import os
-#from dotenv import load_dotenv
+from openai import OpenAI
 
-# Cargar API Key
-#load_dotenv()
-#openai.api_key = os.getenv("OPENAI_API_KEY")
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+# Configura el cliente con tu API Key
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-st.set_page_config(page_title="Preconsulta Menopausia", page_icon="🩺")
+st.set_page_config(page_title="Preconsulta Ginecológica", page_icon="🩺")
 st.title("🩺 Clasificador de síntomas para consulta ginecológica")
 st.markdown("Completa el siguiente campo contando con tus propias palabras cómo te sientes:")
 
-# Input del paciente
 user_input = st.text_area("¿Qué síntomas tienes? ¿Desde cuándo? ¿Antecedentes? ¿Qué te preocupa?")
 
-# Botón de envío
 if st.button("Generar resumen para la doctora") and user_input.strip() != "":
     with st.spinner("Analizando síntomas..."):
 
@@ -33,7 +27,7 @@ Texto de la paciente:
 \"\"\"{user_input}\"\"\"
 """
 
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.2
