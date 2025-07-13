@@ -108,13 +108,22 @@ Texto:
                     temperature=0.2
                 )
                 resultado = response.choices[0].message.content.strip()
+                ...  # dentro de with tab1:
                 st.session_state["resultado_triaje"] = resultado
                 st.success("Resumen generado:")
                 st.code(resultado, language="yaml")
+                
+                # Si ya hay diagnóstico anterior, combínalo
+                resumen_completo = resultado
+                if "dx_triaje" in st.session_state:
+                    resumen_completo += "\n\n---\n\n🩺 Diagnóstico sugerido:\n" + st.session_state["dx_triaje"]
+
                 archivo = "Resumen_triaje.pdf"
-                descargar_pdf_button(resultado, archivo, paciente_info)
+                descargar_pdf_button(resumen_completo, archivo, paciente_info)
+
                 if correo_paciente and st.button("📤 Enviar por correo", key="mail_triaje"):
                     enviar_por_correo(archivo, correo_paciente)
+
                 st.session_state.historial.append({
                     "nombre": nombre_paciente,
                     "rut": rut_paciente,
@@ -145,6 +154,7 @@ Resumen clínico:
                     temperature=0.2
                 )
                 dx = response_dx.choices[0].message.content.strip()
+                st.session_state["dx_triaje"] = dx  # lo guardamos para PDF
                 st.success("Diagnóstico sugerido:")
                 st.markdown(dx)
                 st.session_state.historial.append({
@@ -154,8 +164,7 @@ Resumen clínico:
                     "tipo": "Diagnóstico CIE-10",
                     "contenido": dx
                 })
-    else:
-        st.info("Primero debes generar el resumen clínico para sugerir diagnóstico.")
+
 # --- PESTAÑA 2 ---
 with tab2:
     st.subheader("🧾 Generador de recetas y órdenes")
