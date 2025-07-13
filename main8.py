@@ -306,3 +306,35 @@ with tab5:
                 st.code(ficha["contenido"], language="yaml")
     else:
         st.markdown("_Selecciona un paciente en el menú desplegable para ver su historial._")
+
+    # Reconfirmación vía WhatsApp
+    for nombre in nombres_disponibles:
+        if not nombre:
+            continue
+        fichas = pacientes[nombre]
+        ultima = fichas[-1]
+        st.markdown(f"#### 📌 Reconfirmar asistencia de {nombre}")
+        numero_wsp = st.text_input(f"📱 WhatsApp (formato 569...) - {nombre}", key=f"wsp_{nombre}")
+        if st.button(f"🔁 Generar mensaje reconfirmación ({nombre})"):
+            with st.spinner("Generando mensaje personalizado..."):
+                prompt_reconf = f"""
+Eres una asistente médica. A partir de esta ficha clínica, redacta un mensaje breve y cálido para reconfirmar la consulta agendada para hoy. Incluye:
+- Nombre de la paciente
+- Motivo clínico reciente
+- Solicita confirmación con tono humano, cordial y profesional.
+
+Ficha clínica:
+{ultima['contenido']}
+"""
+                response = client.chat.completions.create(
+                    model="gpt-4",
+                    messages=[{"role": "user", "content": prompt_reconf}],
+                    temperature=0.7
+                )
+                mensaje = response.choices[0].message.content.strip()
+                st.text_area("📨 Mensaje personalizado", mensaje, height=100, key=f"mensaje_{nombre}")
+                if numero_wsp:
+                    import urllib.parse
+                    mensaje_encoded = urllib.parse.quote(mensaje)
+                    url = f"https://wa.me/{numero_wsp}?text={mensaje_encoded}"
+                    st.markdown(f"[📤 Enviar por WhatsApp]({url})", unsafe_allow_html=True)
