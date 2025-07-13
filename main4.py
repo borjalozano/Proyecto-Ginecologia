@@ -46,7 +46,7 @@ if tab1.button("Generar resumen para la doctora", key="triaje"):
     if not user_input_triaje.strip():
         tab1.warning("Por favor, escribe algo antes de generar el resumen.")
     else:
-        with tab1.spinner("Analizando síntomas..."):
+        with st.spinner("Analizando síntomas..."):
             prompt_triaje = f"""
 Eres un asistente clínico que ayuda a una ginecóloga a preparar la consulta con pacientes en edad menopáusica.
 Una paciente ha escrito libremente sus síntomas y preocupaciones. Genera un resumen clínico estructurado para la doctora que incluya:
@@ -81,7 +81,7 @@ if tab2.button("Generar documentos", key="ordenes"):
     if not user_input_plan.strip():
         tab2.warning("Por favor, escribe un plan clínico antes de generar.")
     else:
-        with tab2.spinner("Generando recetas y órdenes..."):
+        with st.spinner("Generando recetas y órdenes..."):
             prompt_ordenes = f"""
 Eres un asistente médico que transforma planes de manejo escritos por una ginecóloga en documentos clínicos estructurados. A partir del texto entregado, genera tres secciones:
 
@@ -113,7 +113,7 @@ if tab3.button("Generar resumen de exámenes", key="examenes"):
     if not user_input_examenes.strip():
         tab3.warning("Por favor, completa los datos de exámenes.")
     else:
-        with tab3.spinner("Resumiendo exámenes..."):
+        with st.spinner("Resumiendo exámenes..."):
             prompt_examenes = f"""
 Eres un asistente clínico que ayuda a una ginecóloga a revisar exámenes previos informados por una paciente. A partir del texto ingresado, estructura los resultados en las siguientes categorías:
 
@@ -144,7 +144,7 @@ tab3.markdown("📤 O bien, sube un archivo PDF de un examen para incluirlo en e
 archivo_pdf = tab3.file_uploader("Subir examen en PDF", type=["pdf"], key="pdf_upload")
 
 if archivo_pdf:
-    with tab3.spinner("Extrayendo texto del PDF..."):
+    with st.spinner("Extrayendo texto del PDF..."):
         doc = fitz.open(stream=archivo_pdf.read(), filetype="pdf")
         texto_extraido = ""
         for page in doc:
