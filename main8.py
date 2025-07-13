@@ -120,7 +120,7 @@ Texto:
                     "fecha": date.today().isoformat(),
                     "tipo": "Triaje",
                     "contenido": resultado
-                })
+                }
 if st.button("🔍 Sugerir diagnóstico clínico + CIE-10", key="cie10_triaje"):
     if "resultado_triaje" in st.session_state:
         with st.spinner("Generando diagnóstico sugerido..."):
@@ -150,7 +150,7 @@ Resumen clínico:
                 "contenido": dx
             })
     else:
-        st.warning("⚠️ Primero debes generar el resumen clínico antes de sugerir diagnóstico.")
+        st.warning("⚠️ Primero debes generar el resumen clínico antes de sugerir diagnóstico."))
 # --- PESTAÑA 2 ---
 with tab2:
     st.subheader("🧾 Generador de recetas y órdenes")
