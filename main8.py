@@ -281,7 +281,7 @@ PREGUNTA:
 ...  # Agregar al final del bloque tabs
 
 # --- PESTAÑA 5: Panel clínico ---
-tab5 = st.tabs(["📝 Triaje", "🧾 Recetas", "📋 Exámenes", "💬 Chat PDF", "📊 Panel clínico"])[4]
+#tab5 = st.tabs(["📝 Triaje", "🧾 Recetas", "📋 Exámenes", "💬 Chat PDF", "📊 Panel clínico"])[4]
 
 with tab5:
     st.subheader("📊 Panel clínico de pacientes")
