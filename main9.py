@@ -109,7 +109,6 @@ Texto:
                     temperature=0.2
                 )
                 resultado = response.choices[0].message.content.strip()
-                ...  # dentro de with tab1:
                 st.session_state["resultado_triaje"] = resultado
                 st.success("Resumen generado:")
                 st.code(resultado, language="yaml")
@@ -288,11 +287,7 @@ PREGUNTA:
         with st.expander(f"❓ {q}"):
             st.markdown(r)
 
-...  # Agregar al final del bloque tabs
-
 # --- PESTAÑA 5: Panel clínico ---
-#tab5 = st.tabs(["📝 Triaje", "🧾 Recetas", "📋 Exámenes", "💬 Chat PDF", "📊 Panel clínico"])[4]
-
 with tab5:
     st.subheader("📊 Panel clínico de pacientes")
 
