@@ -170,6 +170,15 @@ Resumen clínico:
 with tab2:
     st.subheader("🧾 Generador de recetas y órdenes")
     entrada = st.text_area("Plan de manejo:", key="plan_input")
+    st.markdown("### 📎 Adjuntar examen en PDF (opcional)")
+    archivo_pdf_orden = st.file_uploader("Sube un PDF de referencia clínica (opcional)", type=["pdf"], key="pdf_orden_upload")
+    if archivo_pdf_orden:
+        with st.spinner("Extrayendo texto del PDF..."):
+            doc = fitz.open(stream=archivo_pdf_orden.read(), filetype="pdf")
+            texto_extraido = ""
+            for page in doc:
+                texto_extraido += page.get_text()
+            st.text_area("Texto extraído del PDF:", texto_extraido, height=150)
     if st.button("Generar documentos", key="ordenes"):
         if not entrada.strip():
             st.warning("Por favor escribe un plan.")
