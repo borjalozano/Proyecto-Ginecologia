@@ -208,24 +208,23 @@ Texto:
 with tab3:
     st.subheader("📋 Resumen de exámenes previos")
     st.markdown("### 📎 Adjuntar examen en PDF (opcional)")
-    archivo_pdf_orden = st.file_uploader("Sube un PDF de referencia clínica (opcional)", type=["pdf"], key="pdf_orden_upload")
+    archivos_pdf = st.file_uploader("Sube uno o más PDF de referencia clínica", type=["pdf"], accept_multiple_files=True, key="pdf_orden_upload")
     texto_extraido = ""
-    if archivo_pdf_orden:
-        with st.spinner("Extrayendo texto del PDF..."):
-            doc = fitz.open(stream=archivo_pdf_orden.read(), filetype="pdf")
-            texto_extraido = ""
-            for page in doc:
-                texto_extraido += page.get_text()
-            st.text_area("Texto extraído del PDF:", texto_extraido, height=150)
+    if archivos_pdf:
+        with st.spinner("Extrayendo texto de los PDFs..."):
+            for archivo in archivos_pdf:
+                doc = fitz.open(stream=archivo.read(), filetype="pdf")
+                for page in doc:
+                    texto_extraido += page.get_text() + "\n"
+        st.text_area("Texto extraído de los PDF:", texto_extraido, height=150)
     entrada = st.text_area("Resultados de exámenes:", key="examen_input")
     if st.button("Generar resumen", key="examenes"):
-        if not entrada.strip():
-            st.warning("Por favor escribe los resultados.")
+        if not entrada.strip() and not texto_extraido.strip():
+            st.warning("Por favor escribe los resultados o sube al menos un archivo.")
         else:
-            prompt = f"""
-Eres un asistente clínico. Resume los resultados médicos ingresados por la paciente:
-
-\"\"\"{entrada}\"\"\"
+            entrada_final = entrada.strip() + "\n" + texto_extraido.strip()
+            prompt = f"""Eres un asistente clínico. Resume los resultados clínicos siguientes:
+\"\"\"{entrada_final}\"\"\"
 """
             with st.spinner("Resumiendo..."):
                 response = client.chat.completions.create(
