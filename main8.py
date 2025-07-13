@@ -120,9 +120,9 @@ Texto:
                     "tipo": "Triaje",
                     "contenido": resultado
                 })
-                if st.button("🔍 Sugerir diagnóstico clínico + CIE-10", key="cie10_triaje"):
-                    with st.spinner("Generando diagnóstico sugerido..."):
-                        prompt_dx = f"""
+if st.button("🔍 Sugerir diagnóstico clínico + CIE-10", key="cie10_triaje"):
+    with st.spinner("Generando diagnóstico sugerido..."):
+        prompt_dx = f"""
 Eres un asistente clínico que revisa un resumen de síntomas de una paciente.
 
 A partir del siguiente texto, entrega:
@@ -130,7 +130,7 @@ A partir del siguiente texto, entrega:
 - Los códigos CIE-10 más probables (máximo 3)
 
 Resumen clínico:
-\"\"\"{resultado}\"\"\"
+{resultado}
 """
         response_dx = client.chat.completions.create(
             model="gpt-4",
@@ -147,7 +147,6 @@ Resumen clínico:
             "tipo": "Diagnóstico CIE-10",
             "contenido": dx
         })
-
 # --- PESTAÑA 2 ---
 with tab2:
     st.subheader("🧾 Generador de recetas y órdenes")
