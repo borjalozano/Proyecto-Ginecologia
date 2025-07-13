@@ -3,6 +3,7 @@ from openai import OpenAI
 from fpdf import FPDF
 import base64
 import fitz  # PyMuPDF
+import re
 
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
@@ -10,7 +11,10 @@ st.set_page_config(page_title="Asistente Ginecológico IA", page_icon="🩺")
 st.title("🩺 Asistente clínico para ginecología")
 st.markdown("Selecciona un modo de uso:")
 
-# Función PDF común
+# Función PDF común con limpieza de emojis
+def limpiar_emojis(texto):
+    return re.sub(r'[^\x00-\x7F]+', '', texto)
+
 def generar_pdf(texto, filename="documento_clinico.pdf"):
     pdf = FPDF()
     pdf.add_page()
@@ -22,7 +26,8 @@ def generar_pdf(texto, filename="documento_clinico.pdf"):
     return filename
 
 def descargar_pdf_button(content, nombre_archivo):
-    generar_pdf(content, nombre_archivo)
+    texto_limpio = limpiar_emojis(content)
+    generar_pdf(texto_limpio, nombre_archivo)
     with open(nombre_archivo, "rb") as f:
         base64_pdf = base64.b64encode(f.read()).decode('utf-8')
         href = f'<a href="data:application/pdf;base64,{base64_pdf}" download="{nombre_archivo}">📄 Descargar PDF</a>'
@@ -85,9 +90,9 @@ if tab2.button("Generar documentos", key="ordenes"):
             prompt_ordenes = f"""
 Eres un asistente médico que transforma planes de manejo escritos por una ginecóloga en documentos clínicos estructurados. A partir del texto entregado, genera tres secciones:
 
-1. 📄 Receta médica: lista los medicamentos mencionados con dosis, vía de administración y duración.
-2. 🧪 Órdenes médicas: lista de exámenes a realizar, explicados con nombre completo.
-3. 📅 Seguimiento: indicación de control o nueva consulta.
+1. Receta médica: lista los medicamentos mencionados con dosis, vía de administración y duración.
+2. Órdenes médicas: lista de exámenes a realizar, explicados con nombre completo.
+3. Seguimiento: indicación de control o nueva consulta.
 
 Texto del plan:
 """
@@ -117,10 +122,10 @@ if tab3.button("Generar resumen de exámenes", key="examenes"):
             prompt_examenes = f"""
 Eres un asistente clínico que ayuda a una ginecóloga a revisar exámenes previos informados por una paciente. A partir del texto ingresado, estructura los resultados en las siguientes categorías:
 
-- 📄 PAP: fecha, resultado, recomendación
-- 🧠 Mamografía/Ecografía: fecha, resultado, interpretación
-- 🦴 DMO: interpretación y sugerencia
-- 🧪 Exámenes generales: colesterol, glicemia, TSH u otros
+- PAP: fecha, resultado, recomendación
+- Mamografía/Ecografía: fecha, resultado, interpretación
+- DMO: interpretación y sugerencia
+- Exámenes generales: colesterol, glicemia, TSH u otros
 
 Indica si algún examen está vencido o si requiere seguimiento.
 
