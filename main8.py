@@ -2,7 +2,7 @@ import streamlit as st
 from openai import OpenAI
 from fpdf import FPDF
 import base64
-import fitz  # PyMuPDF
+import fitz
 import re
 from datetime import date
 import yagmail
@@ -12,8 +12,8 @@ client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 st.set_page_config(page_title="Asistente Ginecológico IA", page_icon="🩺")
 st.title("🩺 Asistente clínico para ginecología")
-st.markdown("Selecciona un modo de uso:")
 
+# Inicialización de estado
 if "historial" not in st.session_state:
     st.session_state.historial = []
 if "chat_pdf" not in st.session_state:
@@ -21,10 +21,64 @@ if "chat_pdf" not in st.session_state:
 if "pdf_texto" not in st.session_state:
     st.session_state.pdf_texto = ""
 
-# ... (resto del código intacto hasta tabs)
+# Funciones
+def limpiar_emojis(texto):
+    return re.sub(r'[^\x00-\x7F]+', '', texto)
 
-# Tabs actualizadas
+def generar_pdf(texto, filename="documento_clinico.pdf", encabezado=None):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.set_font("Arial", size=12)
+    if encabezado:
+        pdf.multi_cell(0, 10, encabezado)
+        pdf.ln(5)
+    for line in texto.split('\n'):
+        pdf.multi_cell(0, 10, line)
+    pdf.output(filename)
+    return filename
 
+def descargar_pdf_button(content, filename, paciente_info):
+    encabezado = f"Paciente: {paciente_info.get('nombre', '---')}\nRUT: {paciente_info.get('rut', '---')}\nFecha: {date.today().strftime('%d-%m-%Y')}"
+    texto_limpio = limpiar_emojis(content)
+    generar_pdf(texto_limpio, filename, encabezado)
+    with open(filename, "rb") as f:
+        base64_pdf = base64.b64encode(f.read()).decode('utf-8')
+        href = f'<a href="data:application/pdf;base64,{base64_pdf}" download="{filename}">📄 Descargar PDF</a>'
+        st.markdown(href, unsafe_allow_html=True)
+
+def enviar_por_correo(filename, destinatario):
+    try:
+        yag = yagmail.SMTP(user=st.secrets["EMAIL_USER"], password=st.secrets["EMAIL_PASSWORD"])
+        yag.send(
+            to=destinatario,
+            subject="Documento clínico generado",
+            contents="Adjunto encontrará el resumen generado por la consulta médica.",
+            attachments=filename
+        )
+        st.success(f"Correo enviado a {destinatario}")
+    except Exception as e:
+        st.error(f"Error al enviar correo: {e}")
+        st.exception(traceback.format_exc())
+
+# Datos del paciente
+st.sidebar.markdown("### 🧍 Datos del paciente")
+nombre_paciente = st.sidebar.text_input("Nombre completo")
+rut_paciente = st.sidebar.text_input("RUT (opcional)")
+correo_paciente = st.sidebar.text_input("✉️ Correo electrónico (opcional)")
+paciente_info = {"nombre": nombre_paciente, "rut": rut_paciente, "correo": correo_paciente}
+
+# Historial
+st.sidebar.markdown("---")
+if nombre_paciente:
+    fichas = [f for f in st.session_state.historial if f["nombre"] == nombre_paciente]
+    if fichas:
+        st.sidebar.markdown(f"### 📚 Historial de {nombre_paciente}")
+        for ficha in fichas[::-1]:
+            with st.sidebar.expander(f"{ficha['tipo']} - {ficha['fecha']}"):
+                st.code(ficha["contenido"], language="yaml")
+
+# Tabs
 tab1, tab2, tab3, tab4 = st.tabs([
     "📝 Triaje de síntomas",
     "🧾 Generador de recetas y órdenes",
@@ -32,27 +86,134 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "💬 Chat sobre examen PDF"
 ])
 
-# --- TAB 4: Chat sobre PDF ---
-tab4.subheader("💬 Chat sobre informe médico en PDF")
-archivo_pdf_chat = tab4.file_uploader("Sube un informe médico en PDF", type=["pdf"], key="chat_pdf_upload")
+# --- PESTAÑA 1 ---
+with tab1:
+    st.subheader("📝 Clasificador de síntomas")
+    entrada = st.text_area("Describe tus síntomas:", key="triaje_input")
+    if st.button("Generar resumen", key="triaje"):
+        if not entrada.strip():
+            st.warning("Por favor escribe algo.")
+        else:
+            prompt = f"""
+Eres un asistente clínico. Resume los síntomas de una paciente y genera un reporte estructurado.
 
-if archivo_pdf_chat:
-    with st.spinner("Extrayendo texto del PDF..."):
-        doc = fitz.open(stream=archivo_pdf_chat.read(), filetype="pdf")
-        texto_extraido = ""
-        for page in doc:
-            texto_extraido += page.get_text()
-        st.session_state.pdf_texto = texto_extraido
-        tab4.success("Texto extraído con éxito")
-        tab4.text_area("Contenido del documento", texto_extraido, height=200)
+Texto:
+\"\"\"{entrada}\"\"\"
+"""
+            with st.spinner("Procesando..."):
+                response = client.chat.completions.create(
+                    model="gpt-4",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.2
+                )
+                resultado = response.choices[0].message.content.strip()
+                st.success("Resumen generado:")
+                st.code(resultado, language="yaml")
+                archivo = "Resumen_triaje.pdf"
+                descargar_pdf_button(resultado, archivo, paciente_info)
+                if correo_paciente and st.button("📤 Enviar por correo", key="mail_triaje"):
+                    enviar_por_correo(archivo, correo_paciente)
+                st.session_state.historial.append({
+                    "nombre": nombre_paciente,
+                    "rut": rut_paciente,
+                    "fecha": date.today().isoformat(),
+                    "tipo": "Triaje",
+                    "contenido": resultado
+                })
 
-if st.session_state.pdf_texto:
-    pregunta = tab4.text_input("Haz una pregunta sobre el documento:")
-    if pregunta:
-        with st.spinner("Consultando el documento..."):
-            prompt_chat = f"""
-Eres un asistente médico. A continuación, tienes un informe clínico en texto.
-Responde únicamente en base a este contenido.
+# --- PESTAÑA 2 ---
+with tab2:
+    st.subheader("🧾 Generador de recetas y órdenes")
+    entrada = st.text_area("Plan de manejo:", key="plan_input")
+    if st.button("Generar documentos", key="ordenes"):
+        if not entrada.strip():
+            st.warning("Por favor escribe un plan.")
+        else:
+            prompt = f"""
+Eres un asistente médico. A partir del siguiente plan, genera:
+
+- Receta médica
+- Órdenes de exámenes
+- Seguimiento
+
+Texto:
+\"\"\"{entrada}\"\"\"
+"""
+            with st.spinner("Procesando..."):
+                response = client.chat.completions.create(
+                    model="gpt-4",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.2
+                )
+                resultado = response.choices[0].message.content.strip()
+                st.success("Documentos generados:")
+                st.markdown(resultado)
+                archivo = "Ordenes_y_recetas.pdf"
+                descargar_pdf_button(resultado, archivo, paciente_info)
+                if correo_paciente and st.button("📤 Enviar por correo", key="mail_orden"):
+                    enviar_por_correo(archivo, correo_paciente)
+                st.session_state.historial.append({
+                    "nombre": nombre_paciente,
+                    "rut": rut_paciente,
+                    "fecha": date.today().isoformat(),
+                    "tipo": "Plan",
+                    "contenido": resultado
+                })
+
+# --- PESTAÑA 3 ---
+with tab3:
+    st.subheader("📋 Resumen de exámenes previos")
+    entrada = st.text_area("Resultados de exámenes:", key="examen_input")
+    if st.button("Generar resumen", key="examenes"):
+        if not entrada.strip():
+            st.warning("Por favor escribe los resultados.")
+        else:
+            prompt = f"""
+Eres un asistente clínico. Resume los resultados médicos ingresados por la paciente:
+
+\"\"\"{entrada}\"\"\"
+"""
+            with st.spinner("Resumiendo..."):
+                response = client.chat.completions.create(
+                    model="gpt-4",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.2
+                )
+                resultado = response.choices[0].message.content.strip()
+                st.success("Resumen generado:")
+                st.markdown(resultado)
+                archivo = "Resumen_examenes.pdf"
+                descargar_pdf_button(resultado, archivo, paciente_info)
+                if correo_paciente and st.button("📤 Enviar por correo", key="mail_exam"):
+                    enviar_por_correo(archivo, correo_paciente)
+                st.session_state.historial.append({
+                    "nombre": nombre_paciente,
+                    "rut": rut_paciente,
+                    "fecha": date.today().isoformat(),
+                    "tipo": "Exámenes",
+                    "contenido": resultado
+                })
+
+# --- PESTAÑA 4 ---
+with tab4:
+    st.subheader("💬 Chat sobre informe en PDF")
+    archivo_pdf = st.file_uploader("Sube un PDF de examen o informe médico", type=["pdf"])
+    if archivo_pdf:
+        with st.spinner("Leyendo PDF..."):
+            doc = fitz.open(stream=archivo_pdf.read(), filetype="pdf")
+            texto = ""
+            for page in doc:
+                texto += page.get_text()
+            st.session_state.pdf_texto = texto
+            st.text_area("Texto extraído:", texto, height=200)
+
+    if st.session_state.pdf_texto:
+        pregunta = st.text_input("Haz una pregunta sobre el informe:")
+        if pregunta:
+            with st.spinner("Consultando el documento..."):
+                prompt_chat = f"""
+Eres un asistente clínico. A continuación tienes el texto de un informe médico.
+Responde solo en base a ese contenido.
 
 INFORME:
 {st.session_state.pdf_texto}
@@ -60,14 +221,14 @@ INFORME:
 PREGUNTA:
 {pregunta}
 """
-            response = client.chat.completions.create(
-                model="gpt-4",
-                messages=[{"role": "user", "content": prompt_chat}],
-                temperature=0.2
-            )
-            respuesta = response.choices[0].message.content.strip()
-            st.session_state.chat_pdf.append((pregunta, respuesta))
+                response = client.chat.completions.create(
+                    model="gpt-4",
+                    messages=[{"role": "user", "content": prompt_chat}],
+                    temperature=0.2
+                )
+                respuesta = response.choices[0].message.content.strip()
+                st.session_state.chat_pdf.append((pregunta, respuesta))
 
-for q, r in st.session_state.chat_pdf[::-1]:
-    with tab4.expander(f"❓ {q}"):
-        tab4.markdown(r)
+    for q, r in st.session_state.chat_pdf[::-1]:
+        with st.expander(f"❓ {q}"):
+            st.markdown(r)
